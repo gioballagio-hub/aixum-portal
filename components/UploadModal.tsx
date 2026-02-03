@@ -31,61 +31,80 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Utente non autenticato');
+      // 1. Verifica sessione attiva
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        throw new Error('Sessione non valida. Effettua nuovamente il login.');
+      }
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const user = session.user;
+
+      // 2. Preparazione path del file
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const bucketName = type === 'video' ? 'videos' : 'documents';
       const filePath = `${user.id}/${fileName}`;
 
-      // 1. Upload file to Supabase Storage
-      const { error: uploadError, data: uploadData } = await supabase.storage
+      // 3. Caricamento su Storage
+      const { error: uploadError } = await supabase.storage
         .from(bucketName)
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw new Error(`Errore Storage: ${uploadError.message}`);
+      }
 
-      // Get public URL
+      // 4. Ottieni URL del file
       const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
 
-      // 2. Insert record into database
+      // 5. Inserimento nel Database
       const table = type === 'video' ? 'videos' : 'documents';
+      
       const payload: any = {
-        title,
-        category,
-        is_published: false,
-        upload_by: user.id,
+        title: title.trim(),
+        category: category,
+        is_published: false, // Viene salvato come bozza inizialmente
+        upload_by: user.id
       };
 
       if (type === 'video') {
-        payload.description = description;
+        payload.description = description.trim();
         payload.video_url = publicUrl;
-        payload.duration_seconds = 0; // In production we'd extract this
+        payload.duration_seconds = 0; 
       } else {
         payload.file_name = file.name;
         payload.file_url = publicUrl;
         payload.file_size_bytes = file.size;
-        payload.file_type = fileExt;
+        payload.file_type = fileExt || 'unknown';
       }
 
       const { error: dbError } = await supabase
         .from(table)
         .insert([payload]);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Errore Database dettagliato:', dbError);
+        if (dbError.code === '42501') {
+          throw new Error('Permesso negato (RLS). Il database non ti riconosce come admin. Assicurati di aver eseguito lo script SQL di riparazione.');
+        }
+        throw new Error(`Errore Database: ${dbError.message}`);
+      }
 
+      // Successo!
       onSuccess();
       onClose();
-      // Reset state
+      // Reset form
       setTitle('');
       setDescription('');
       setCategory('');
       setFile(null);
     } catch (err: any) {
-      setError(err.message || 'Errore durante il caricamento.');
+      setError(err.message || 'Si è verificato un errore durante l\'upload.');
     } finally {
       setUploading(false);
     }
@@ -106,18 +125,18 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
           <h2 className="text-3xl font-display font-bold">
             Carica <span className="gold-text-gradient">{type === 'video' ? 'Nuovo Video' : 'Nuovo Documento'}</span>
           </h2>
-          <p className="text-gray-400 mt-2">I contenuti caricati verranno salvati come bozze.</p>
+          <p className="text-gray-400 mt-2">I contenuti verranno salvati come bozze in attesa di pubblicazione.</p>
         </div>
 
         <form onSubmit={handleUpload} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">Titolo Content*</label>
+            <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">Titolo Contenuto*</label>
             <input 
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:border-gold-primary focus:outline-none transition-all"
-              placeholder="Inserisci il titolo..."
+              placeholder="Inserisci titolo..."
               required
             />
           </div>
@@ -136,52 +155,32 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
                 <option value="Automation">Automation</option>
                 <option value="Data Analysis">Data Analysis</option>
                 <option value="Digital Ethics">Digital Ethics</option>
+                <option value="Marketing">Marketing</option>
               </select>
             </div>
-            {type === 'video' && (
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">File Video*</label>
-                <div className="relative">
-                  <input 
-                    type="file"
-                    accept="video/mp4,video/x-m4v,video/*"
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="video-upload"
-                    required
-                  />
-                  <label 
-                    htmlFor="video-upload"
-                    className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-400 hover:border-gold-primary hover:text-white cursor-pointer transition-all truncate"
-                  >
-                    {file ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Upload size={18} />}
-                    {file ? file.name : 'Seleziona MP4, MOV...'}
-                  </label>
-                </div>
+            
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">
+                {type === 'video' ? 'Scegli Video*' : 'Scegli File*' }
+              </label>
+              <div className="relative">
+                <input 
+                  type="file"
+                  accept={type === 'video' ? "video/*" : ".pdf,.doc,.docx,.xls,.xlsx"}
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="file-upload-input"
+                  required
+                />
+                <label 
+                  htmlFor="file-upload-input"
+                  className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-400 hover:border-gold-primary hover:text-white cursor-pointer transition-all truncate"
+                >
+                  {file ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Upload size={18} />}
+                  <span className="truncate">{file ? file.name : 'Scegli file...'}</span>
+                </label>
               </div>
-            )}
-            {type === 'document' && (
-               <div className="space-y-2">
-               <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">File Documento*</label>
-               <div className="relative">
-                 <input 
-                   type="file"
-                   accept=".pdf,.doc,.docx,.xls,.xlsx"
-                   onChange={(e) => setFile(e.target.files?.[0] || null)}
-                   className="hidden"
-                   id="doc-upload"
-                   required
-                 />
-                 <label 
-                   htmlFor="doc-upload"
-                   className="flex items-center justify-center gap-2 w-full px-6 py-4 rounded-xl bg-white/5 border border-dashed border-white/20 text-gray-400 hover:border-gold-primary hover:text-white cursor-pointer transition-all truncate"
-                 >
-                   {file ? <CheckCircle2 size={18} className="text-emerald-500" /> : <Upload size={18} />}
-                   {file ? file.name : 'Seleziona PDF, DOCX...'}
-                 </label>
-               </div>
-             </div>
-            )}
+            </div>
           </div>
 
           {type === 'video' && (
@@ -190,16 +189,16 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
               <textarea 
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:border-gold-primary focus:outline-none transition-all min-h-[120px]"
-                placeholder="Inserisci una breve descrizione del corso..."
+                className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 focus:border-gold-primary focus:outline-none transition-all min-h-[100px]"
+                placeholder="Breve descrizione del video..."
               />
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-              <AlertCircle size={18} />
-              {error}
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <p>{error}</p>
             </div>
           )}
 
@@ -207,19 +206,20 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
             <button 
               type="button"
               onClick={onClose}
-              className="flex-1 py-4 glass-card gold-border rounded-xl font-bold hover:bg-white/5 transition-all"
+              disabled={uploading}
+              className="flex-1 py-4 glass-card gold-border rounded-xl font-bold hover:bg-white/5 transition-all disabled:opacity-30"
             >
               Annulla
             </button>
             <button 
               type="submit"
               disabled={uploading}
-              className="flex-[2] py-4 gold-gradient text-black rounded-xl font-bold gold-glow transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:scale-100"
+              className="flex-[2] py-4 gold-gradient text-black rounded-xl font-bold gold-glow transition-all hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {uploading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Caricamento in corso...
+                  Caricamento...
                 </>
               ) : (
                 <>

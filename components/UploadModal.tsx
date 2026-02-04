@@ -71,13 +71,11 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
       let fileUrl = editingItem?.file_url || editingItem?.video_url;
       let thumbUrl = editingItem?.thumbnail_url;
 
-      // Gestione File con progresso simulato (Supabase JS client non espone progresso standard per upload piccoli/medi)
       if (file) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}-${type}.${fileExt}`;
         const filePath = `${session.user.id}/${fileName}`;
         
-        // Per file pesanti, mostriamo una progressione fluida
         const progressInterval = setInterval(() => {
           setProgress(prev => (prev < 90 ? prev + Math.random() * 5 : prev));
         }, 1000);
@@ -92,7 +90,6 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
         setProgress(95);
       }
 
-      // Gestione Thumbnail
       if (thumbnail && type === 'video') {
         const thumbExt = thumbnail.name.split('.').pop();
         const thumbName = `${Date.now()}-thumb.${thumbExt}`;
@@ -154,49 +151,49 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-md animate-in fade-in" onClick={onClose} />
-      <div className="relative w-full max-w-lg business-card rounded-lg p-8 animate-in zoom-in-95 shadow-2xl border-white/5 bg-[#0d0d0d]">
-        <header className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gold-primary/10 flex items-center justify-center text-gold-primary shadow-inner">
-              {type === 'video' ? <Video size={24} /> : (type === 'certificate' ? <Award size={24} /> : <FilePlus size={24} />)}
+      <div className="relative w-full max-w-xl business-card rounded-[32px] p-10 animate-in zoom-in-95 shadow-2xl border-white/5 bg-[#0d0d0d]">
+        <header className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-gold-primary/10 flex items-center justify-center text-gold-primary shadow-inner">
+              {type === 'video' ? <Video size={28} /> : (type === 'certificate' ? <Award size={28} /> : <FilePlus size={28} />)}
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white uppercase tracking-tight leading-none mb-1.5">
-                {isEditing ? 'Gestione' : 'Caricamento'} <span className="text-gold-primary">{type}</span>
+              <h2 className="text-xl font-display font-bold text-white uppercase tracking-tight">
+                {isEditing ? 'Gestione' : 'Caricamento'} <span className="gold-text-gradient">{type}</span>
               </h2>
-              <p className="text-[9px] font-black text-dark-muted uppercase tracking-[0.4em]">Infrastruttura Enterprise</p>
+              <p className="text-[10px] font-black text-dark-muted uppercase tracking-[0.4em] mt-1">Infrastruttura Cloud AIXUM</p>
             </div>
           </div>
-          <button onClick={onClose} disabled={uploading} className="p-2 rounded hover:bg-white/5 text-dark-muted hover:text-white transition-all">
-            <X size={20} />
+          <button onClick={onClose} disabled={uploading} className="p-3 rounded-xl hover:bg-white/5 text-dark-muted hover:text-white transition-all">
+            <X size={24} />
           </button>
         </header>
 
-        <form onSubmit={handleUpload} className="space-y-6">
+        <form onSubmit={handleUpload} className="space-y-8">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Titolo Risorsa</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Titolo Ufficiale</label>
             <input 
               type="text"
               value={title}
               disabled={uploading}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-3 text-xs rounded bg-dark-lighter border border-dark-border text-white focus:border-gold-primary outline-none transition-all placeholder:text-dark-muted"
-              placeholder="Inserisci il titolo ufficiale..."
+              className="w-full px-5 py-4 text-sm rounded-2xl bg-dark-lighter border-2 border-dark-border text-white focus:border-gold-primary outline-none transition-all placeholder:text-dark-muted shadow-inner"
+              placeholder="Esempio: Strategia AI 2026..."
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Taxonomy</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Categoria</label>
               <select 
                 value={category}
                 disabled={uploading}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 text-xs rounded bg-dark-lighter border border-dark-border text-white focus:border-gold-primary outline-none transition-all cursor-pointer"
+                className="w-full px-5 py-4 text-sm rounded-2xl bg-dark-lighter border-2 border-dark-border text-white focus:border-gold-primary outline-none transition-all cursor-pointer appearance-none shadow-inner"
                 required
               >
-                <option value="">Scegli...</option>
+                <option value="">Seleziona...</option>
                 <option value="AI Strategy">AI Strategy</option>
                 <option value="Automation">Automation</option>
                 <option value="Marketing">Marketing</option>
@@ -205,26 +202,26 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
             </div>
             
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Sorgente File</label>
-              <label className="flex items-center justify-center gap-2 w-full px-4 py-3 text-[10px] font-black rounded bg-dark-lighter border border-dashed border-dark-border text-dark-muted hover:border-gold-primary hover:text-white cursor-pointer transition-all truncate">
+              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Seleziona File</label>
+              <label className="flex items-center justify-center gap-3 w-full px-5 py-4 text-[11px] font-black rounded-2xl bg-dark-lighter border-2 border-dashed border-dark-border text-dark-muted hover:border-gold-primary hover:text-white cursor-pointer transition-all truncate shadow-inner">
                 <input type="file" className="hidden" disabled={uploading} onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                {file ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <Upload size={14} />}
-                <span className="truncate">{file ? file.name : (isEditing ? 'Sostituisci' : 'Seleziona')}</span>
+                {file ? <CheckCircle2 size={16} className="text-emerald-500 shrink-0" /> : <Upload size={16} />}
+                <span className="truncate">{file ? file.name : (isEditing ? 'Sostituisci File' : 'Sfoglia Risorse')}</span>
               </label>
             </div>
           </div>
 
           {type === 'certificate' && (
              <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Assegna a Cliente</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Proprietario Certificato</label>
               <select 
                 value={userId}
                 disabled={uploading}
                 onChange={(e) => setUserId(e.target.value)}
-                className="w-full px-4 py-3 text-xs rounded bg-dark-lighter border border-dark-border text-white focus:border-gold-primary outline-none transition-all cursor-pointer"
+                className="w-full px-5 py-4 text-sm rounded-2xl bg-dark-lighter border-2 border-dark-border text-white focus:border-gold-primary outline-none transition-all cursor-pointer shadow-inner"
                 required
               >
-                <option value="">Seleziona destinatario...</option>
+                <option value="">Seleziona cliente...</option>
                 {profiles.map(p => (
                   <option key={p.id} value={p.id}>{p.full_name} ({p.company_name})</option>
                 ))}
@@ -233,36 +230,39 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onSuccess, t
           )}
 
           {uploading && (
-            <div className="space-y-3 p-4 bg-white/5 rounded-lg border border-white/10">
-              <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em]">
-                <span className="text-gold-primary">Sincronizzazione in corso...</span>
-                <span className="text-white">{Math.round(progress)}%</span>
+            <div className="space-y-4 p-6 bg-gold-primary/5 rounded-2xl border-2 border-gold-primary/20">
+              <div className="flex justify-between items-end">
+                <div className="flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin text-gold-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Sincronizzazione in corso...</span>
+                </div>
+                <span className="text-lg font-display font-bold text-white leading-none">{Math.round(progress)}%</span>
               </div>
-              <div className="h-1.5 w-full bg-dark-lighter rounded-full overflow-hidden">
+              <div className="h-2 w-full bg-dark-lighter rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-gold-primary transition-all duration-300 shadow-[0_0_10px_#D4AF37]" 
+                  className="h-full bg-gold-primary transition-all duration-300 shadow-[0_0_15px_#D4AF37]" 
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
-              <p className="text-[8px] text-dark-muted italic">Non chiudere questa finestra durante il caricamento di video pesanti.</p>
+              <p className="text-[9px] text-dark-muted italic font-medium">Non chiudere il portale durante il trasferimento di contenuti pesanti.</p>
             </div>
           )}
 
           {error && (
-            <div className="flex items-center gap-2 text-[10px] text-red-400 bg-red-500/5 p-4 rounded border border-red-500/10 font-bold">
-              <AlertCircle size={16} /> {error}
+            <div className="flex items-center gap-3 text-xs text-red-400 bg-red-500/5 p-5 rounded-2xl border-2 border-red-500/10 font-bold">
+              <AlertCircle size={20} /> {error}
             </div>
           )}
 
-          <div className="pt-4 flex gap-4">
-            <button type="button" onClick={onClose} disabled={uploading} className="flex-1 py-3 text-[10px] font-black uppercase tracking-widest text-dark-muted hover:text-white transition-all">Esci</button>
+          <div className="pt-6 flex gap-4">
+            <button type="button" onClick={onClose} disabled={uploading} className="flex-1 py-4 text-xs font-black uppercase tracking-widest text-dark-muted hover:text-white transition-all">Annulla</button>
             <button 
               type="submit" 
               disabled={uploading} 
-              className="flex-[2] py-3 bg-gold-primary text-black rounded text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:opacity-90 active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              className="flex-[2] py-4 bg-gold-primary text-black rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 transition-all flex items-center justify-center gap-3"
             >
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {uploading ? 'TRASFERIMENTO...' : (isEditing ? 'SALVA MODIFICHE' : 'ESEGUI UPLOAD')}
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {uploading ? 'SINCRONIZZAZIONE...' : (isEditing ? 'SALVA MODIFICHE' : 'ESEGUI UPLOAD')}
             </button>
           </div>
         </form>

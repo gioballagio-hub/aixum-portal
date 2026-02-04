@@ -1,11 +1,13 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Play, Clock, Share2, Bookmark, Video as VideoIcon, CheckCircle2 } from 'lucide-react';
 import ReactPlayer from 'react-player';
 import { supabase } from '../../lib/supabase';
 import { Video } from '../../types';
 import { copyToClipboard } from '../../lib/utils';
+// Import the Logo component to resolve the error on line 132
+import Logo from '../../components/Logo';
 
 const VideoPlayerPage: React.FC = () => {
   const { id } = useParams();
@@ -13,6 +15,10 @@ const VideoPlayerPage: React.FC = () => {
   const [relatedVideos, setRelatedVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const playerRef = useRef<any>(null);
+  
+  // Tracking
+  const [playedSeconds, setPlayedSeconds] = useState(0);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -33,17 +39,32 @@ const VideoPlayerPage: React.FC = () => {
     fetchVideo();
   }, [id]);
 
+  // Sync progress with Supabase every 10 seconds of playback
+  useEffect(() => {
+    const syncProgress = async () => {
+      if (!video || playedSeconds === 0) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const userId = session.user.id;
+      
+      // Upsert progress
+      await supabase.from('video_views').upsert({
+        video_id: video.id,
+        user_id: userId,
+        progress_seconds: Math.floor(playedSeconds),
+        completed: playedSeconds > (video.duration_seconds * 0.9) && video.duration_seconds > 0
+      }, { onConflict: 'video_id,user_id' });
+    };
+
+    const interval = setInterval(syncProgress, 10000);
+    return () => clearInterval(interval);
+  }, [video, playedSeconds]);
+
   const handleShare = async () => {
     const success = await copyToClipboard(window.location.href);
     if (success) showToast("Link copiato negli appunti!");
-  };
-
-  const handleBookmark = () => {
-    showToast("Video aggiunto ai preferiti!");
-  };
-
-  const handleSupport = () => {
-    window.location.href = `mailto:support@aixum.it?subject=Supporto Video: ${video?.title}`;
   };
 
   if (loading) return <div className="h-[400px] w-full glass-card animate-pulse rounded-xl"></div>;
@@ -59,94 +80,74 @@ const VideoPlayerPage: React.FC = () => {
 
       <div className="grid lg:grid-cols-4 gap-6">
         <div className="lg:col-span-3 space-y-6">
-          <div className="aspect-video w-full rounded-xl overflow-hidden border border-white/10 bg-black shadow-2xl relative group">
+          <div className="aspect-video w-full rounded-[32px] overflow-hidden border-2 border-gold-primary/20 bg-black shadow-2xl relative group">
             <Player 
+              ref={playerRef}
               url={video.video_url} 
               controls 
               width="100%" 
               height="100%" 
               playing={false}
-              light={video.thumbnail_url}
+              onProgress={(state: any) => setPlayedSeconds(state.playedSeconds)}
               playIcon={
-                <div className="w-14 h-14 rounded-full gold-gradient flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform">
-                  <Play size={24} className="text-black ml-1" fill="black" />
+                <div className="w-20 h-20 rounded-full gold-gradient flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform cursor-pointer">
+                  <Play size={32} className="text-black ml-1.5" fill="currentColor" />
                 </div>
               }
             />
           </div>
 
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-gold-primary">{video.category}</span>
-              <h1 className="text-2xl font-bold text-white leading-tight">{video.title}</h1>
-              <div className="flex items-center gap-4 text-[10px] font-medium text-gray-500 uppercase tracking-tighter">
+            <div className="space-y-4 max-w-2xl">
+              <div className="flex gap-2">
+                <span className="px-3 py-1 bg-gold-primary/10 border border-gold-primary/30 rounded-full text-[9px] font-black uppercase tracking-widest text-gold-primary">{video.category}</span>
+                <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500">Video Lesson</span>
+              </div>
+              <h1 className="text-3xl font-display font-bold text-white leading-tight">{video.title}</h1>
+              <div className="flex items-center gap-4 text-[10px] font-medium text-gray-500 uppercase tracking-[0.2em]">
                 <span className="flex items-center gap-1.5"><Clock size={12} className="text-gold-primary" /> {Math.floor(video.duration_seconds / 60)} minuti</span>
                 <span>•</span>
-                <span>Aggiornato il {new Date(video.created_at).toLocaleDateString('it-IT')}</span>
+                <span>Modulo caricato il {new Date(video.created_at).toLocaleDateString('it-IT')}</span>
               </div>
-              <div className="mt-4 pt-4 border-t border-white/5 text-sm text-gray-400 leading-relaxed max-w-xl">
-                {video.description || "Nessuna descrizione disponibile."}
+              <div className="mt-4 pt-6 border-t border-white/5 text-sm text-gray-400 leading-relaxed max-w-xl italic">
+                {video.description || "Nessuna descrizione aggiuntiva fornita per questo modulo di formazione."}
               </div>
             </div>
 
-            <div className="flex gap-2">
-              <button 
-                onClick={handleShare}
-                className="p-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-500 hover:text-gold-primary transition-all"
-                title="Copia Link"
-              >
-                <Share2 size={16} />
-              </button>
-              <button 
-                onClick={handleBookmark}
-                className="p-2.5 rounded-lg bg-white/5 border border-white/5 text-gray-500 hover:text-gold-primary transition-all"
-                title="Salva nei Preferiti"
-              >
-                <Bookmark size={16} />
-              </button>
+            <div className="flex gap-3">
+              <button onClick={handleShare} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-gray-500 hover:text-gold-primary hover:border-gold-primary/40 transition-all shadow-xl"><Share2 size={18} /></button>
+              <button className="p-3 rounded-2xl bg-white/5 border border-white/10 text-gray-500 hover:text-gold-primary hover:border-gold-primary/40 transition-all shadow-xl"><Bookmark size={18} /></button>
             </div>
           </div>
         </div>
 
-        <aside className="space-y-4">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-600 px-1">Correlati</h2>
-          <div className="space-y-3">
+        <aside className="space-y-6">
+          <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-gray-600 px-1 border-l-2 border-gold-primary/40 ml-1">Libreria Correlata</h2>
+          <div className="space-y-4">
             {relatedVideos.map(rv => (
-              <Link key={rv.id} to={`/dashboard/videos/${rv.id}`} className="flex gap-3 p-2 rounded-lg hover:bg-white/[0.03] border border-transparent hover:border-white/5 transition-all group">
-                <div className="w-20 aspect-video rounded bg-dark-lighter overflow-hidden shrink-0 border border-white/5">
+              <Link key={rv.id} to={`/dashboard/videos/${rv.id}`} className="flex gap-4 p-3 rounded-2xl hover:bg-gold-primary/[0.03] border border-transparent hover:border-gold-primary/20 transition-all group">
+                <div className="w-24 aspect-video rounded-xl bg-dark-lighter overflow-hidden shrink-0 border border-white/5 shadow-lg">
                   {rv.thumbnail_url ? (
                     <img src={rv.thumbnail_url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt="" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Play size={10} className="text-gold-primary/20" /></div>
+                    <div className="w-full h-full flex items-center justify-center bg-gold-primary/5">
+                      <Logo size="sm" withGlow={false} className="scale-50 opacity-10" />
+                    </div>
                   )}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[11px] font-bold text-gray-300 truncate leading-tight group-hover:text-gold-primary transition-colors">{rv.title}</h4>
-                  <p className="text-[9px] text-gray-600 mt-1 uppercase font-bold">{rv.category}</p>
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h4 className="text-[12px] font-bold text-gray-300 truncate leading-tight group-hover:text-gold-primary transition-colors">{rv.title}</h4>
+                  <p className="text-[9px] text-gold-primary/60 mt-1 uppercase font-black tracking-widest">{rv.category}</p>
                 </div>
               </Link>
             ))}
-          </div>
-
-          <div className="mt-8 p-4 rounded-xl gold-gradient text-black shadow-lg relative overflow-hidden group">
-            <div className="relative z-10">
-              <h3 className="text-xs font-bold uppercase tracking-tight mb-1">Supporto Direttamente in AIXUM</h3>
-              <p className="text-[10px] leading-tight font-medium opacity-70 mb-3">Dubbi tecnici su questo modulo?</p>
-              <button 
-                onClick={handleSupport}
-                className="w-full py-2 bg-black/90 text-white rounded text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors"
-              >
-                Contatta Mentore
-              </button>
-            </div>
-            <VideoIcon size={60} className="absolute -bottom-2 -right-2 opacity-10 group-hover:rotate-12 transition-transform" />
           </div>
         </aside>
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-[200] animate-in slide-in-from-right-10 flex items-center gap-3 px-4 py-3 bg-gold-primary text-black font-bold text-xs rounded-xl shadow-2xl">
-          <CheckCircle2 size={16} /> {toast}
+        <div className="fixed bottom-6 right-6 z-[200] animate-in slide-in-from-right-10 flex items-center gap-3 px-6 py-4 bg-emerald-500 text-black font-black text-xs rounded-2xl shadow-2xl">
+          <CheckCircle2 size={18} /> {toast}
         </div>
       )}
     </div>

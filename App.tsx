@@ -7,9 +7,11 @@ import ClientDashboard from './pages/dashboard/Overview';
 import VideoList from './pages/dashboard/Videos';
 import VideoPlayerPage from './pages/dashboard/VideoPlayer';
 import DocumentList from './pages/dashboard/Documents';
+import ClientCertificates from './pages/dashboard/Certificates';
 import AdminDashboard from './pages/admin/Overview';
 import AdminVideos from './pages/admin/Videos';
 import AdminDocuments from './pages/admin/Documents';
+import AdminCertificates from './pages/admin/Certificates';
 import AdminClients from './pages/admin/Clients';
 import SidebarLayout from './components/SidebarLayout';
 import Logo from './components/Logo';
@@ -77,19 +79,21 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/dashboard" />} />
         
-        {/* Protected Client Routes */}
+        {/* Protected Routes */}
         <Route element={session ? <SidebarLayout role={profile?.role} profile={profile} /> : <Navigate to="/login" />}>
           <Route path="/dashboard" element={<ClientDashboard profile={profile} />} />
           <Route path="/dashboard/videos" element={<VideoList />} />
           <Route path="/dashboard/videos/:id" element={<VideoPlayerPage />} />
           <Route path="/dashboard/documents" element={<DocumentList />} />
+          <Route path="/dashboard/certificates" element={<ClientCertificates profile={profile} />} />
           
-          {/* Admin Specific Routes */}
+          {/* Admin Routes */}
           {profile?.role === 'admin' && (
             <>
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/videos" element={<AdminVideos />} />
               <Route path="/admin/documents" element={<AdminDocuments />} />
+              <Route path="/admin/certificates" element={<AdminCertificates />} />
               <Route path="/admin/clients" element={<AdminClients />} />
             </>
           )}

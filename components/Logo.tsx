@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 
 interface LogoProps {
   className?: string;
@@ -8,78 +8,44 @@ interface LogoProps {
 }
 
 const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', withGlow = true }) => {
-  const sizes = {
-    sm: 'h-6 w-6',
-    md: 'h-10 w-10',
-    lg: 'h-16 w-16',
-    xl: 'h-24 w-24'
-  };
+  const [error, setError] = useState(false);
 
-  const containerSizes = {
-    sm: 'w-8 h-8',
-    md: 'w-12 h-12',
-    lg: 'w-20 h-20',
-    xl: 'w-32 h-32'
+  // Dimensioni basate sulla larghezza per ospitare il payoff "Italian AI Solutions"
+  const imageWidths = {
+    sm: 'w-28 md:w-32',
+    md: 'w-40 md:w-48',
+    lg: 'w-64 md:w-72',
+    xl: 'w-80 md:w-96'
   };
 
   return (
     <div className={`relative inline-flex items-center justify-center ${className}`}>
-      {/* Sfondo del logo (Quadrato arrotondato premium) */}
-      <div className={`
-        ${containerSizes[size]} 
-        rounded-xl bg-dark-lighter border border-white/10 
-        flex items-center justify-center relative overflow-hidden
-        ${withGlow ? 'shadow-[0_0_20px_rgba(212,175,55,0.15)]' : ''}
-      `}>
-        {/* Effetto luce interna */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-        
-        {/* Simbolo SVG AIXUM */}
-        <svg 
-          viewBox="0 0 100 100" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-          className={`${sizes[size]} transition-all duration-500`}
-        >
-          <defs>
-            <linearGradient id="gold-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#D4AF37" />
-              <stop offset="100%" stopColor="#F9A602" />
-            </linearGradient>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-              <feMerge>
-                <feMergeNode in="coloredBlur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
-          </defs>
-          
-          {/* Forma stilizzata "A" e "X" incrociate */}
-          <path 
-            d="M50 20L25 80H35L50 45L65 80H75L50 20Z" 
-            fill="url(#gold-grad)" 
-          />
-          <path 
-            d="M30 40L45 55L30 70" 
-            stroke="url(#gold-grad)" 
-            strokeWidth="4" 
-            strokeLinecap="round"
-          />
-          <path 
-            d="M70 40L55 55L70 70" 
-            stroke="url(#gold-grad)" 
-            strokeWidth="4" 
-            strokeLinecap="round"
-          />
-          
-          {/* Punto AI centrale */}
-          <circle cx="50" cy="55" r="4" fill="url(#gold-grad)" filter="url(#glow)" />
-        </svg>
-      </div>
+      {/* Glow di profondità dietro il logo */}
+      {withGlow && !error && (
+        <div className="absolute inset-0 blur-[40px] bg-gold-primary/15 -z-10 rounded-full scale-110 animate-pulse"></div>
+      )}
 
-      {/* Se il logo è grande o extra grande, aggiungiamo il testo accanto se necessario, 
-          ma qui manteniamo l'icona pura come richiesto dal design della sidebar */}
+      {!error ? (
+        <img 
+          src="logo_AIXUM_senza_sfondo.png" 
+          alt="AIXUM Italian AI Solutions" 
+          onError={() => setError(true)}
+          className={`
+            ${imageWidths[size]} 
+            h-auto object-contain relative z-10 
+            brightness-[1.1] contrast-[1.05]
+            drop-shadow-[0_0_15px_rgba(212,175,55,0.35)]
+            transition-all duration-500 hover:scale-[1.02]
+          `}
+        />
+      ) : (
+        /* Fallback Premium se l'immagine non è presente */
+        <div className="flex flex-col items-center group">
+          <span className="text-3xl md:text-4xl font-display font-black gold-text-gradient tracking-tighter italic">AIXUM</span>
+          <span className="text-[8px] md:text-[10px] text-gold-primary/70 font-bold uppercase tracking-[0.3em] -mt-1">Italian AI Solutions</span>
+          <div className="h-[1px] w-full gold-gradient rounded-full mt-1 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+        </div>
+      )}
     </div>
   );
 };

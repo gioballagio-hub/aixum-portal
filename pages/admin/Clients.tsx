@@ -60,7 +60,7 @@ const AdminClients: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gold-primary/10 pb-4">
         <div>
           <h1 className="text-2xl font-display font-bold text-white">Anagrafica <span className="gold-text-gradient">Clienti</span></h1>
           <p className="text-[10px] text-gray-500 uppercase tracking-[0.3em] mt-1 font-bold">Gestione accessi Enterprise</p>
@@ -74,7 +74,7 @@ const AdminClients: React.FC = () => {
               placeholder="Filtra utenti..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all w-48 md:w-64"
+              className="pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-gold-primary/20 text-white focus:border-gold-primary outline-none transition-all w-48 md:w-64"
             />
           </div>
           <button 
@@ -91,15 +91,15 @@ const AdminClients: React.FC = () => {
       ) : (
         <div className="grid gap-4">
           {filteredProfiles.map((profile) => (
-            <div key={profile.id} className={`glass-card border ${profile.is_active ? 'border-white/5' : 'border-red-500/20 bg-red-500/[0.02]'} p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group transition-all`}>
+            <div key={profile.id} className={`glass-card border ${profile.is_active ? 'border-gold-primary/20' : 'border-red-500/30 bg-red-500/[0.02]'} p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:border-gold-primary/40 transition-all shadow-lg`}>
               <div className="flex items-center gap-4 min-w-0">
-                <div className={`w-10 h-10 rounded-lg ${profile.is_active ? 'bg-white/5 text-gold-primary' : 'bg-red-500/10 text-red-400'} border border-white/10 flex items-center justify-center font-black uppercase shrink-0`}>
+                <div className={`w-10 h-10 rounded-lg ${profile.is_active ? 'bg-gold-primary/10 text-gold-primary border border-gold-primary/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} flex items-center justify-center font-black uppercase shrink-0`}>
                   {profile.full_name?.[0] || profile.email[0]}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-bold text-white truncate">{profile.full_name || 'Account in attesa'}</p>
-                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${profile.role === 'admin' ? 'bg-gold-primary/10 text-gold-primary border border-gold-primary/20' : 'bg-white/5 text-gray-500'}`}>
+                    <p className="text-sm font-bold text-white truncate">{profile.full_name || 'Account in attesa'}</p>
+                    <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${profile.role === 'admin' ? 'bg-gold-primary/10 text-gold-primary border border-gold-primary/20' : 'bg-white/5 text-gray-500 border border-white/5'}`}>
                       {profile.role}
                     </span>
                   </div>
@@ -113,14 +113,14 @@ const AdminClients: React.FC = () => {
               <div className="flex items-center gap-2 justify-end border-t sm:border-t-0 border-white/5 pt-3 sm:pt-0">
                 <button 
                   onClick={() => changeRole(profile.id, profile.role)}
-                  className="p-2 rounded-lg bg-white/5 border border-white/5 text-gray-500 hover:text-gold-primary transition-all flex items-center gap-2 text-[10px] font-bold uppercase"
+                  className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-500 hover:text-gold-primary hover:border-gold-primary/30 transition-all flex items-center gap-2 text-[10px] font-bold uppercase"
                   title="Cambia Ruolo"
                 >
                   <Shield size={14} /> <span className="hidden md:inline">Ruolo</span>
                 </button>
                 <button 
                   onClick={() => toggleActiveStatus(profile.id, profile.is_active)}
-                  className={`p-2 rounded-lg border flex items-center gap-2 text-[10px] font-bold uppercase transition-all ${profile.is_active ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10' : 'bg-red-500/5 border-red-500/20 text-red-400 hover:bg-red-500/10'}`}
+                  className={`p-2 px-4 rounded-lg border flex items-center gap-2 text-[10px] font-bold uppercase transition-all shadow-sm ${profile.is_active ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10' : 'bg-red-500/5 border-red-500/20 text-red-400 hover:bg-red-500/10'}`}
                 >
                   {profile.is_active ? <UserCheck size={14} /> : <UserX size={14} />}
                   <span>{profile.is_active ? 'Attivo' : 'Sospeso'}</span>

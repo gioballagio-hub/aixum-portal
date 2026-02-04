@@ -12,6 +12,7 @@ import AdminVideos from './pages/admin/Videos';
 import AdminDocuments from './pages/admin/Documents';
 import AdminClients from './pages/admin/Clients';
 import SidebarLayout from './components/SidebarLayout';
+import Logo from './components/Logo';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -56,8 +57,17 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-dark flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-gold-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-dark flex flex-col items-center justify-center gap-6">
+        <Logo size="lg" className="animate-pulse" />
+        <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 gold-gradient animate-[loading_1.5s_infinite]"></div>
+        </div>
+        <style>{`
+          @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+          }
+        `}</style>
       </div>
     );
   }

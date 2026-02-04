@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Eye, EyeOff, Lock, Mail, ChevronRight } from 'lucide-react';
+import Logo from '../components/Logo';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -31,7 +32,7 @@ const Login: React.FC = () => {
 
       <div className="relative w-full max-w-[380px] animate-in fade-in zoom-in-95 duration-700">
         <div className="flex flex-col items-center mb-8">
-          <img src="logo.png" alt="AIXUM" className="h-12 w-auto mb-4" />
+          <Logo size="lg" className="mb-4 hover:scale-105 transition-transform duration-500" />
           <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em]">Knowledge Portal</p>
         </div>
 

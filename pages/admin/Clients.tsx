@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Users, Search, Mail, Building2, UserPlus, MoreVertical, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Users, Search, Mail, Building2, UserPlus, X, Loader2, AlertCircle, CheckCircle2, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Profile } from '../../types';
 
@@ -10,7 +10,6 @@ const AdminClients: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // Modal Form State
   const [newEmail, setNewEmail] = useState('');
   const [newName, setNewName] = useState('');
   const [newCompany, setNewCompany] = useState('');
@@ -24,10 +23,7 @@ const AdminClients: React.FC = () => {
 
   const fetchProfiles = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     if (data) setProfiles(data);
     setLoading(false);
   };
@@ -37,30 +33,9 @@ const AdminClients: React.FC = () => {
     setIsCreating(true);
     setModalError(null);
     setSuccessMsg(null);
-
     try {
-      // Nota: In Supabase, non possiamo creare utenti AUTH direttamente dal frontend admin senza service role.
-      // Questa logica inviterà l'utente tramite email o creerà solo il profilo se l'utente esiste già.
-      // Per un portale completo, l'admin crea il profilo e l'utente riceve l'invito.
-      
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(newEmail, {
-        data: { 
-          full_name: newName,
-          company_name: newCompany,
-          role: 'client'
-        }
-      });
-
-      if (error) {
-        // Se non abbiamo i permessi admin auth (necessario service role), proviamo ad inserire solo il profilo
-        // Questo funzionerà solo se l'utente si è già registrato o se abbiamo configurato un edge function.
-        // Come fallback semplificato per questa demo:
-        throw new Error("L'invito via email richiede i permessi Service Role. Per ora, crea l'utente in 'Authentication' e il profilo si aggiornerà al primo login.");
-      }
-
-      setSuccessMsg("Invito inviato con successo!");
-      fetchProfiles();
-      setTimeout(() => setIsModalOpen(false), 2000);
+      // Nota: Richiede permessi admin auth tramite Service Role o Edge Function per la creazione reale
+      throw new Error("Si prega di utilizzare la dashboard Auth di Supabase per la creazione utenti diretta. Questa interfaccia admin gestisce solo l'anagrafica profili.");
     } catch (err: any) {
       setModalError(err.message);
     } finally {
@@ -75,163 +50,115 @@ const AdminClients: React.FC = () => {
   );
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="space-y-2">
-          <p className="text-gold-primary font-bold uppercase tracking-[0.3em] text-[10px]">User Governance</p>
-          <h1 className="text-4xl md:text-5xl font-display font-bold">Gestione <span className="gold-text-gradient italic">Clienti</span></h1>
+    <div className="space-y-6 animate-in fade-in duration-700">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h1 className="text-2xl font-display font-bold text-white">Anagrafica <span className="gold-text-gradient">Clienti</span></h1>
+          <p className="text-[10px] text-gray-500 uppercase tracking-[0.3em] mt-1 font-bold">Gestione accessi Enterprise</p>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
             <input 
               type="text"
-              placeholder="Cerca cliente o azienda..."
+              placeholder="Filtra utenti..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
+              className="pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all w-48 md:w-64"
             />
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-8 py-4 gold-gradient text-black rounded-xl font-bold gold-glow transition-all hover:scale-105 flex items-center justify-center gap-2"
+            className="px-4 py-2 gold-gradient text-black rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-2"
           >
-            <UserPlus size={18} /> Nuovo Account
+            <UserPlus size={14} /> Nuovo Cliente
           </button>
         </div>
       </header>
 
-      <div className="grid gap-6">
-        {loading ? (
-          <div className="flex flex-col items-center py-20 gap-4">
-            <Loader2 className="animate-spin text-gold-primary" size={48} />
-            <p className="text-gray-500 italic">Caricamento profili...</p>
-          </div>
-        ) : filteredProfiles.map((profile, idx) => (
-          <div 
-            key={profile.id} 
-            className="glass-card gold-border p-8 rounded-[32px] flex flex-col md:flex-row items-center justify-between gap-8 hover:bg-white/[0.03] transition-all group animate-in fade-in slide-in-from-bottom-4"
-            style={{ animationDelay: `${idx * 100}ms` }}
-          >
-            <div className="flex items-center gap-6 w-full md:w-auto">
-              <div className="w-16 h-16 rounded-2xl gold-gradient flex items-center justify-center text-black font-black text-xl shadow-lg shadow-gold-primary/20 shrink-0">
-                {profile.full_name?.[0] || profile.email[0].toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-bold text-white truncate group-hover:text-gold-primary transition-colors">{profile.full_name || 'N/A'}</h3>
-                  {profile.role === 'admin' && (
-                    <span className="px-2 py-0.5 rounded-md bg-gold-primary/10 border border-gold-primary/20 text-gold-primary text-[10px] font-bold uppercase">Admin</span>
-                  )}
+      {loading ? (
+        <div className="py-20 flex justify-center"><Loader2 className="animate-spin text-gold-primary" size={32} /></div>
+      ) : (
+        <div className="grid gap-4">
+          {filteredProfiles.map((profile) => (
+            <div key={profile.id} className="glass-card border border-white/5 p-4 rounded-xl flex items-center justify-between group hover:border-gold-primary/30 transition-all">
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-gold-primary font-black uppercase shrink-0">
+                  {profile.full_name?.[0] || profile.email[0]}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
-                  <p className="text-sm text-gray-400 flex items-center gap-2">
-                    <Mail size={14} className="text-gold-primary" /> {profile.email}
-                  </p>
-                  <p className="text-sm text-gray-400 flex items-center gap-2">
-                    <Building2 size={14} className="text-gold-primary" /> {profile.company_name || 'Nessuna Azienda'}
-                  </p>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold text-white truncate">{profile.full_name || 'Account Anonimo'}</p>
+                    {profile.role === 'admin' && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md bg-gold-primary/10 text-gold-primary border border-gold-primary/20">Admin</span>}
+                  </div>
+                  <div className="flex items-center gap-3 mt-0.5">
+                    <p className="text-[10px] text-gray-500 flex items-center gap-1"><Mail size={10} className="text-gold-primary" /> {profile.email}</p>
+                    <p className="text-[10px] text-gray-500 flex items-center gap-1"><Building2 size={10} className="text-gold-primary" /> {profile.company_name || 'Private'}</p>
+                  </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between w-full md:w-auto md:justify-end gap-10">
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-bold uppercase tracking-widest text-gray-600">Membro dal</p>
-                <p className="text-sm font-bold text-gray-400 mt-1">{new Date(profile.created_at).toLocaleDateString('it-IT')}</p>
               </div>
               
-              <div className="flex items-center gap-3">
-                <button className="px-6 py-3 rounded-xl glass-card border border-white/10 hover:border-gold-primary font-bold text-xs uppercase tracking-widest transition-all">
-                  Dettagli
-                </button>
-                <button className="p-3 rounded-xl glass-card border border-white/10 text-gray-500 hover:text-white transition-all">
-                  <MoreVertical size={18} />
+              <div className="flex items-center gap-4">
+                <div className="text-right hidden sm:block">
+                  <p className="text-[9px] font-black text-gray-600 uppercase">Membro dal</p>
+                  <p className="text-[10px] font-bold text-gray-500">{new Date(profile.created_at).toLocaleDateString()}</p>
+                </div>
+                <button className="p-2 rounded-lg bg-white/5 border border-white/5 text-gray-600 hover:text-gold-primary transition-all">
+                  <MoreHorizontal size={14} />
                 </button>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+          {filteredProfiles.length === 0 && <p className="text-center py-12 text-xs text-gray-600 italic">Nessun profilo corrispondente.</p>}
+        </div>
+      )}
 
-        {!loading && filteredProfiles.length === 0 && (
-          <div className="py-24 text-center glass-card rounded-[40px] border border-dashed border-white/10">
-            <Users size={64} className="mx-auto text-gray-800 mb-6" />
-            <h2 className="text-2xl font-bold text-gray-600">Nessun cliente trovato</h2>
-          </div>
-        )}
-      </div>
-
-      {/* Modal Creazione Cliente */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setIsModalOpen(false)} />
-          <div className="relative w-full max-w-lg glass-card gold-border rounded-[32px] p-10 animate-in zoom-in-95 duration-300">
-            <button 
-              onClick={() => setIsModalOpen(false)}
-              className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors"
-            >
-              <X size={24} />
-            </button>
-
-            <h2 className="text-3xl font-display font-bold mb-2">Crea <span className="gold-text-gradient">Nuovo Cliente</span></h2>
-            <p className="text-gray-400 mb-8">Inserisci i dati per creare un nuovo profilo utente.</p>
-
-            <form onSubmit={handleCreateClient} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">Nome Completo</label>
+          <div className="relative w-full max-w-md glass-card gold-border rounded-xl p-8 animate-in zoom-in-95">
+            <h2 className="text-xl font-display font-bold mb-6 text-white">Nuovo Profilo <span className="gold-text-gradient">Enterprise</span></h2>
+            <form onSubmit={handleCreateClient} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Nome Completo</label>
                 <input 
                   type="text"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
-                  placeholder="Esm. Mario Rossi"
+                  className="w-full px-4 py-2.5 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
+                  placeholder="es. Mario Rossi"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">Email Aziendale</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Email Aziendale</label>
                 <input 
                   type="email"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
-                  className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
-                  placeholder="email@azienda.it"
+                  className="w-full px-4 py-2.5 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
+                  placeholder="mario@azienda.it"
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-gold-primary">Nome Azienda</label>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gold-primary">Nome Azienda</label>
                 <input 
                   type="text"
                   value={newCompany}
                   onChange={(e) => setNewCompany(e.target.value)}
-                  className="w-full px-6 py-4 rounded-xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
-                  placeholder="Nome Società"
-                  required
+                  className="w-full px-4 py-2.5 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
+                  placeholder="Nome Società S.p.A."
                 />
               </div>
 
-              {modalError && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex gap-3">
-                  <AlertCircle size={18} className="shrink-0" /> {modalError}
-                </div>
-              )}
-
-              {successMsg && (
-                <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm flex gap-3">
-                  <CheckCircle2 size={18} className="shrink-0" /> {successMsg}
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={isCreating}
-                className="w-full py-4 gold-gradient text-black rounded-xl font-bold gold-glow flex items-center justify-center gap-2 transition-all hover:scale-[1.02] disabled:opacity-50"
-              >
-                {isCreating ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
-                {isCreating ? 'Creazione in corso...' : 'Crea Account'}
-              </button>
+              {modalError && <div className="p-3 text-[10px] text-red-400 bg-red-500/5 border border-red-500/10 rounded-lg">{modalError}</div>}
+              
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-2.5 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-all">Annulla</button>
+                <button type="submit" disabled={isCreating} className="flex-1 py-2.5 gold-gradient text-black rounded-lg text-xs font-black uppercase tracking-widest transition-all">Crea Account</button>
+              </div>
             </form>
           </div>
         </div>

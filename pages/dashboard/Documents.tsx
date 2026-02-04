@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Search, HardDrive, Loader2, Eye, ExternalLink } from 'lucide-react';
+import { FileText, Download, Search, HardDrive, Loader2, Eye, Filter } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Document } from '../../types';
 import DocumentViewerModal from '../../components/DocumentViewerModal';
@@ -10,8 +10,6 @@ const DocumentList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  
-  // Viewer state
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
 
   useEffect(() => {
@@ -25,142 +23,117 @@ const DocumentList: React.FC = () => {
 
   const filteredDocs = documents.filter(d => 
     d.title.toLowerCase().includes(search.toLowerCase()) || 
-    d.category.toLowerCase().includes(search.toLowerCase()) ||
-    d.file_type.toLowerCase().includes(search.toLowerCase())
+    d.category.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleDownload = async (doc: Document) => {
     setDownloadingId(doc.id);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (session) {
-        // Track the download in the DB
-        await supabase.from('document_downloads').insert([
-          { document_id: doc.id, user_id: session.user.id }
-        ]);
+        await supabase.from('document_downloads').insert([{ document_id: doc.id, user_id: session.user.id }]);
       }
-      
-      // Open file in new tab for direct download
-      const link = document.createElement('a');
-      link.href = doc.file_url;
-      link.download = doc.file_name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      window.open(doc.file_url, '_blank');
     } catch (err) {
-      console.error('Download tracking failed:', err);
+      console.error(err);
     } finally {
       setTimeout(() => setDownloadingId(null), 1000);
     }
   };
 
-  const handleView = async (doc: Document) => {
-    // Apri il modal
-    setSelectedDoc(doc);
-    
-    // Track viewing (optional but good for analytics)
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Possiamo usare la stessa tabella o una dedicata per le "views"
-        console.log(`Utente ${session.user.id} sta visualizzando ${doc.id}`);
-      }
-    } catch (e) {}
-  };
-
   return (
-    <div className="space-y-12">
-       <header className="flex flex-col md:flex-row md:items-end justify-between gap-6 animate-in fade-in slide-in-from-top-4 duration-700">
-        <div className="space-y-2">
-          <p className="text-gold-primary font-bold uppercase tracking-[0.3em] text-[10px]">Archivio Digitale</p>
-          <h1 className="text-4xl md:text-6xl font-display font-bold">I Tuoi <span className="gold-text-gradient italic">Documenti</span></h1>
+    <div className="space-y-6 animate-in fade-in duration-500">
+       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h1 className="text-xl font-bold text-white">Archivio Documenti</h1>
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Sfoglia e scarica le risorse premium</p>
         </div>
         
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-          <input 
-            type="text"
-            placeholder="Cerca per nome, tipo o categoria..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-12 pr-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all placeholder:text-gray-600"
-          />
+        <div className="flex gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
+            <input 
+              type="text"
+              placeholder="Cerca file..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all w-48 md:w-64"
+            />
+          </div>
+          <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-gold-primary transition-all">
+            <Filter size={16} />
+          </button>
         </div>
       </header>
 
       {loading ? (
-        <div className="space-y-4">
-          {[1,2,3,4].map(i => <div key={i} className="h-28 w-full glass-card animate-pulse rounded-2xl"></div>)}
+        <div className="space-y-2">
+          {[1,2,3,4,5,6].map(i => <div key={i} className="h-14 w-full glass-card animate-pulse rounded-lg"></div>)}
         </div>
       ) : (
-        <div className="grid gap-6">
-          <div className="hidden md:grid grid-cols-12 px-8 text-xs font-bold uppercase tracking-widest text-gray-500">
-            <div className="col-span-5">Nome Documento</div>
-            <div className="col-span-2 text-center">Formato</div>
-            <div className="col-span-2 text-center">Peso</div>
-            <div className="col-span-3 text-right">Azioni</div>
-          </div>
-
-          {filteredDocs.map((doc, idx) => (
-            <div 
-              key={doc.id} 
-              className="grid grid-cols-1 md:grid-cols-12 items-center p-6 md:px-8 rounded-[24px] glass-card gold-border hover:bg-white/[0.04] transition-all group animate-in fade-in slide-in-from-bottom-4"
-              style={{ animationDelay: `${idx * 100}ms` }}
-            >
-              <div className="col-span-1 md:col-span-5 flex items-center gap-6 mb-4 md:mb-0">
-                <div className="w-14 h-14 rounded-2xl gold-gradient flex items-center justify-center text-black shadow-lg shadow-gold-primary/20 shrink-0">
-                  <FileText size={24} />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-lg group-hover:text-gold-primary transition-colors truncate">{doc.title}</h3>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest font-black mt-1">{doc.category}</p>
-                </div>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 text-center mb-4 md:mb-0">
-                <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-tighter text-gray-400">
-                  {doc.file_type}
-                </span>
-              </div>
-
-              <div className="col-span-1 md:col-span-2 text-center text-sm text-gray-500 mb-6 md:mb-0">
-                {(doc.file_size_bytes / 1024 / 1024).toFixed(2)} MB
-              </div>
-
-              <div className="col-span-1 md:col-span-3 flex flex-col sm:flex-row justify-end gap-3">
-                <button 
-                  onClick={() => handleView(doc)}
-                  className="px-6 py-3 glass-card gold-border text-gold-primary rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gold-primary/10 transition-all"
-                >
-                  <Eye size={18} /> Visualizza
-                </button>
-                <button 
-                  onClick={() => handleDownload(doc)}
-                  disabled={downloadingId === doc.id}
-                  className="px-6 py-3 gold-gradient text-black rounded-xl font-bold flex items-center justify-center gap-2 gold-glow hover:scale-[1.05] active:scale-95 transition-all disabled:opacity-70"
-                >
-                  {downloadingId === doc.id ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Download size={18} />
-                  )}
-                  {downloadingId === doc.id ? '...' : 'Scarica'}
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="overflow-hidden border border-white/5 rounded-xl">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-white/[0.02] border-b border-white/5">
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">Nome Documento</th>
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 hidden md:table-cell text-center">Tipo</th>
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 hidden md:table-cell text-center">Dimensione</th>
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right">Azioni</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredDocs.map((doc, idx) => (
+                <tr key={doc.id} className="hover:bg-white/[0.03] transition-colors group">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-gold-primary shrink-0 group-hover:scale-110 transition-transform">
+                        <FileText size={14} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-200 truncate group-hover:text-gold-primary transition-colors">{doc.title}</p>
+                        <p className="text-[9px] text-gray-500 uppercase font-black">{doc.category}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center hidden md:table-cell">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-500 uppercase">{doc.file_type}</span>
+                  </td>
+                  <td className="px-4 py-3 text-center text-[10px] text-gray-500 hidden md:table-cell">
+                    {(doc.file_size_bytes / 1024 / 1024).toFixed(2)} MB
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <button 
+                        onClick={() => setSelectedDoc(doc)}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-gold-primary hover:bg-gold-primary/5 transition-all"
+                        title="Visualizza"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      <button 
+                        onClick={() => handleDownload(doc)}
+                        disabled={downloadingId === doc.id}
+                        className="p-1.5 rounded-lg text-gray-500 hover:text-gold-primary hover:bg-gold-primary/5 transition-all"
+                        title="Scarica"
+                      >
+                        {downloadingId === doc.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           {filteredDocs.length === 0 && (
-            <div className="py-24 text-center glass-card rounded-[40px] border border-dashed border-white/10">
-              <HardDrive size={64} className="mx-auto text-gray-800 mb-6" />
-              <h2 className="text-2xl font-bold text-gray-600">Nessun file disponibile per questa ricerca</h2>
+            <div className="py-20 text-center bg-white/[0.01]">
+              <HardDrive size={32} className="mx-auto text-gray-800 mb-4" />
+              <p className="text-xs text-gray-600 font-medium">Nessun file trovato per questa ricerca</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Document Viewer Modal */}
       <DocumentViewerModal 
         document={selectedDoc}
         onClose={() => setSelectedDoc(null)}

@@ -146,7 +146,7 @@ const AdminClients: React.FC = () => {
               <p>Per creare un nuovo utente nel sistema AIXUM:</p>
               <ol className="list-decimal pl-5 space-y-2">
                 <li>Accedi alla <span className="text-white font-bold underline">Dashboard di Supabase</span>.</li>
-                <li>Vai in Auth > Users e crea l'account con email e password definitiva.</li>
+                <li>Vai in Auth &gt; Users e crea l'account con email e password definitiva.</li>
                 <li>Aggiorna questa pagina: l'utente apparirà nella lista per la configurazione del ruolo.</li>
               </ol>
             </div>

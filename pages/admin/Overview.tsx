@@ -108,7 +108,7 @@ const AdminDashboard: React.FC = () => {
              <ShieldAlert size={40} className="text-gold-primary/20 absolute -top-2 -right-2 rotate-12" />
              <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-gold-primary mb-4">Guida Rapida Utenti</h2>
              <p className="text-xs text-gray-400 leading-relaxed mb-6">
-               Per aggiungere un nuovo cliente, crealo prima nella <span className="text-white font-bold">Dashboard di Supabase</span> sotto la sezione Auth. Successivamente, apparirà automaticamente nella tua lista <span className="text-white font-bold">Clienti</span> per l'attivazione finale.
+               Per aggiungere un nuovo cliente, crealo prima nella <span className="text-white font-bold">Dashboard di Supabase</span> sotto la sezione Auth &gt; Users. Successivamente, apparirà automaticamente nella tua lista <span className="text-white font-bold">Clienti</span> per l'attivazione finale.
              </p>
              <button 
                onClick={() => navigate('/admin/clients')}

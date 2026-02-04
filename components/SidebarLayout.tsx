@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Video, 
@@ -10,10 +10,8 @@ import {
   Menu, 
   X,
   ShieldCheck,
-  Award,
-  Settings,
-  HelpCircle,
-  Square
+  ChevronRight,
+  Monitor
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -26,141 +24,104 @@ interface SidebarLayoutProps {
 const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
 
-  const menuItems = [
-    { name: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Video Corsi', path: '/dashboard/videos', icon: Video },
-    { name: 'Documenti', path: '/dashboard/documents', icon: FileText },
-  ];
-
-  const adminItems = [
-    { name: 'Admin Hub', path: '/admin', icon: ShieldCheck },
-    { name: 'Gestione Video', path: '/admin/videos', icon: Video },
-    { name: 'Gestione Docs', path: '/admin/documents', icon: FileText },
-    { name: 'Clienti', path: '/admin/clients', icon: Users },
-  ];
+  const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => (
+    <NavLink
+      to={to}
+      onClick={() => setIsOpen(false)}
+      className={({ isActive }) => `
+        flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all
+        ${isActive 
+          ? 'bg-dark-lighter text-gold-primary border-l-2 border-gold-primary rounded-l-none' 
+          : 'text-dark-muted hover:text-white hover:bg-dark-lighter'}
+      `}
+    >
+      <Icon size={16} />
+      {label}
+    </NavLink>
+  );
 
   return (
-    <div className="h-screen bg-dark flex flex-col md:flex-row overflow-hidden font-sans">
-      {/* Mobile Nav */}
+    <div className="h-screen bg-black flex flex-col md:flex-row overflow-hidden">
+      {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-dark-card border-b border-dark-border z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gold-primary/20 rounded-md flex items-center justify-center border border-gold-primary/30">
-            <Square size={16} className="text-gold-primary fill-gold-primary/20" />
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-gold-primary rounded flex items-center justify-center">
+            <Monitor size={14} className="text-black" />
           </div>
-          <div>
-            <h1 className="text-xs font-black tracking-widest text-white uppercase">Portal</h1>
-          </div>
+          <span className="text-sm font-bold tracking-tight">AIXUM Portal</span>
         </div>
         <button onClick={() => setIsOpen(!isOpen)} className="text-white p-2">
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
+          {isOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
 
-      {/* Sidebar Overlay */}
-      {isOpen && (
-        <div className="md:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={() => setIsOpen(false)} />
-      )}
-
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-dark border-r border-dark-border transition-transform duration-300 ease-in-out md:relative md:translate-x-0 shrink-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-black border-r border-dark-border transition-transform duration-200 md:relative md:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="h-full flex flex-col p-6">
-          {/* Brand Header */}
-          <div className="flex items-center gap-3 mb-12 px-2">
-            <div className="w-8 h-8 bg-gold-primary/20 rounded-md flex items-center justify-center border border-gold-primary/30">
-              <Square size={16} className="text-gold-primary fill-gold-primary/20" />
+        <div className="h-full flex flex-col p-4">
+          <div className="flex items-center gap-3 mb-10 px-2 pt-2">
+            <div className="w-7 h-7 bg-gold-primary rounded-md flex items-center justify-center">
+              <Monitor size={16} className="text-black" />
             </div>
             <div>
-              <h1 className="text-xs font-black tracking-[0.2em] text-white uppercase leading-none">Portal</h1>
-              <p className="text-[8px] font-bold text-dark-muted uppercase tracking-[0.1em] mt-1.5">Enterprise Management</p>
+              <h1 className="text-sm font-bold tracking-tight text-white">AIXUM Portal</h1>
+              <p className="text-[10px] text-dark-muted font-medium uppercase tracking-widest mt-0.5">Enterprise</p>
             </div>
           </div>
 
-          <div className="flex-1 space-y-8 overflow-y-auto custom-scrollbar pr-2">
-            {/* General Section */}
-            <div>
-              <p className="px-3 text-[10px] font-black text-dark-muted uppercase tracking-[0.3em] mb-4 opacity-50">General</p>
-              <nav className="space-y-1">
-                {menuItems.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={({ isActive }) => `
-                      flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all
-                      ${isActive 
-                        ? 'bg-gold-primary/10 text-gold-primary border border-gold-primary/20 shadow-[0_0_15px_rgba(212,175,55,0.05)]' 
-                        : 'text-dark-muted hover:text-white hover:bg-white/[0.03]'}
-                    `}
-                  >
-                    <item.icon size={16} />
-                    {item.name}
-                  </NavLink>
-                ))}
-              </nav>
-            </div>
+          <div className="flex-1 space-y-6 overflow-y-auto">
+            <nav className="space-y-1">
+              <p className="px-3 text-[10px] font-bold text-dark-muted uppercase tracking-widest mb-3">General</p>
+              <NavItem to="/dashboard" icon={LayoutDashboard} label="Overview" />
+              <NavItem to="/dashboard/videos" icon={Video} label="Libreria Video" />
+              <NavItem to="/dashboard/documents" icon={FileText} label="Documenti" />
+            </nav>
 
-            {/* System Section for Admins */}
             {role === 'admin' && (
-              <div>
-                <p className="px-3 text-[10px] font-black text-dark-muted uppercase tracking-[0.3em] mb-4 opacity-50">System</p>
-                <nav className="space-y-1">
-                  {adminItems.map((item) => (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsOpen(false)}
-                      className={({ isActive }) => `
-                        flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all
-                        ${isActive 
-                          ? 'bg-gold-primary/10 text-gold-primary border border-gold-primary/20 shadow-[0_0_15_px_rgba(212,175,55,0.05)]' 
-                          : 'text-dark-muted hover:text-white hover:bg-white/[0.03]'}
-                      `}
-                    >
-                      <item.icon size={16} />
-                      {item.name}
-                    </NavLink>
-                  ))}
-                </nav>
-              </div>
+              <nav className="space-y-1">
+                <p className="px-3 text-[10px] font-bold text-dark-muted uppercase tracking-widest mb-3">Management</p>
+                <NavItem to="/admin" icon={ShieldCheck} label="Admin Hub" />
+                <NavItem to="/admin/videos" icon={Video} label="Gestione Video" />
+                <NavItem to="/admin/documents" icon={FileText} label="Gestione Docs" />
+                <NavItem to="/admin/clients" icon={Users} label="Clienti" />
+              </nav>
             )}
           </div>
 
-          {/* Profile & Logout */}
-          <div className="mt-auto pt-6 space-y-4">
-            <div className="p-4 rounded-2xl bg-dark-card border border-dark-border flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-gold-primary flex items-center justify-center text-sm font-black text-black shadow-lg">
-                {profile?.full_name?.[0] || 'U'}
+          <div className="mt-auto pt-6 border-t border-dark-border">
+            <div className="flex items-center gap-3 px-2 mb-4">
+              <div className="w-8 h-8 rounded bg-dark-border flex items-center justify-center text-xs font-bold text-white">
+                {profile?.full_name?.[0]}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-white truncate">{profile?.full_name}</p>
-                <p className="text-[9px] text-dark-muted font-black uppercase tracking-widest mt-0.5 truncate">{profile?.role}istrator</p>
+                <p className="text-xs font-semibold text-white truncate">{profile?.full_name}</p>
+                <p className="text-[10px] text-dark-muted truncate uppercase tracking-tighter">{profile?.role}</p>
               </div>
             </div>
-            
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-3 text-[10px] text-dark-muted hover:text-white transition-colors uppercase font-black tracking-[0.3em]"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-dark-muted hover:text-white hover:bg-dark-lighter rounded-md transition-all"
             >
               <LogOut size={14} />
-              Logout
+              Sign out
             </button>
           </div>
         </div>
       </aside>
 
-      {/* Content Area */}
-      <main className="flex-1 bg-dark overflow-y-auto p-6 md:p-12 lg:p-16">
-        <Outlet />
+      {/* Content */}
+      <main className="flex-1 bg-black overflow-y-auto">
+        <div className="p-6 md:p-10 lg:p-12 max-w-6xl mx-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

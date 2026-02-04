@@ -1,50 +1,38 @@
 
 import React, { useEffect, useState } from 'react';
-import { Video, FileText, ChevronRight, PlayCircle, Award, Clock, ExternalLink, Loader2, Play, Download, RefreshCw, TrendingUp } from 'lucide-react';
+import { Video, FileText, ChevronRight, PlayCircle, RefreshCw, Loader2, Play, Download, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Profile, Video as IVideo, Document as IDocument } from '../../types';
 import { downloadFile } from '../../lib/utils';
-import DocumentViewerModal from '../../components/DocumentViewerModal';
 
 interface OverviewProps { profile: Profile | null; }
 
 const ClientDashboard: React.FC<OverviewProps> = ({ profile }) => {
   const [recentVideos, setRecentVideos] = useState<IVideo[]>([]);
   const [recentDocs, setRecentDocs] = useState<IDocument[]>([]);
-  const [counts, setCounts] = useState({ videos: 0, docs: 0, certs: 0, hours: '0' });
+  const [counts, setCounts] = useState({ videos: 0, docs: 0, hours: 0 });
   const [loading, setLoading] = useState(true);
-  const [selectedDoc, setSelectedDoc] = useState<IDocument | null>(null);
-  const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString('it-IT'));
 
   const fetchData = async () => {
     if (!profile) return;
     setLoading(true);
     try {
-      const [vids, docs, vCount, dCount, cCount, viewProgress] = await Promise.all([
-        supabase.from('videos').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(1),
+      const [vids, docs, vCount, dCount, viewProgress] = await Promise.all([
+        supabase.from('videos').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(2),
         supabase.from('documents').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(2),
         supabase.from('videos').select('id', { count: 'exact', head: true }).eq('is_published', true),
         supabase.from('documents').select('id', { count: 'exact', head: true }).eq('is_published', true),
-        supabase.from('certificates').select('id', { count: 'exact', head: true }).eq('user_id', profile.id),
         supabase.from('video_views').select('progress_seconds').eq('user_id', profile.id)
       ]);
 
-      const totalSeconds = viewProgress.data?.reduce((acc, curr) => acc + (curr.progress_seconds || 0), 0) || 0;
-      const hoursDecimal = Math.floor(totalSeconds / 3600);
+      const totalHours = Math.floor((viewProgress.data?.reduce((acc, curr) => acc + (curr.progress_seconds || 0), 0) || 0) / 3600);
 
       if (vids.data) setRecentVideos(vids.data);
       if (docs.data) setRecentDocs(docs.data);
-      
-      setCounts({ 
-        videos: vCount.count || 0, 
-        docs: dCount.count || 0, 
-        certs: cCount.count || 0,
-        hours: `${hoursDecimal}`
-      });
-      setCurrentTime(new Date().toLocaleTimeString('it-IT'));
+      setCounts({ videos: vCount.count || 0, docs: dCount.count || 0, hours: totalHours });
     } catch (err) {
-      console.error("Dashboard error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -55,133 +43,92 @@ const ClientDashboard: React.FC<OverviewProps> = ({ profile }) => {
   }, [profile]);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-16 animate-in fade-in duration-1000 p-4">
-      {/* Welcome Header */}
-      <header className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+    <div className="space-y-10 animate-in fade-in duration-500">
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-sans font-bold text-white tracking-tight">Bentornato, {profile?.full_name}</h1>
-          <p className="text-dark-muted text-[13px] mt-2 font-black uppercase tracking-[0.3em] opacity-80">
-            {profile?.company_name} • Enterprise Account
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">Benvenuto, {profile?.full_name}</h1>
+          <p className="text-dark-muted text-sm mt-1">{profile?.company_name} • Account Client</p>
         </div>
-        <div className="flex items-center gap-3 px-5 py-2.5 bg-dark-card border border-dark-border rounded-xl shadow-2xl">
-          <span className="text-[11px] font-black text-dark-muted uppercase tracking-[0.3em]">Status:</span>
-          <span className="text-[11px] font-black text-emerald-500 uppercase tracking-[0.3em] flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-            Active
-          </span>
-        </div>
+        <button onClick={fetchData} className="sb-button-secondary">
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Refresh
+        </button>
       </header>
 
-      {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: 'Video Corsi', value: counts.videos, icon: Video },
           { label: 'Documenti', value: counts.docs, icon: FileText },
           { label: 'Ore Studio', value: counts.hours + 'h', icon: PlayCircle },
-          { label: 'Certificati', value: counts.certs, icon: TrendingUp },
         ].map((stat, i) => (
-          <div key={i} className="business-card p-8 rounded-2xl flex flex-col justify-between h-44 group hover:border-gold-primary/40 transition-all duration-500 shadow-xl">
-            <div className="flex justify-between items-start">
-              <stat.icon size={22} className="text-gold-primary" />
-              <ChevronRight size={16} className="text-dark-muted group-hover:translate-x-1 transition-transform" />
+          <div key={i} className="sb-card p-6">
+            <div className="flex items-center gap-3 text-dark-muted mb-4">
+              <stat.icon size={16} />
+              <span className="text-[11px] font-bold uppercase tracking-wider">{stat.label}</span>
             </div>
-            <div>
-              <h3 className="text-5xl font-sans font-bold text-white leading-none mb-3">
-                {loading ? '...' : stat.value}
-              </h3>
-              <p className="text-[11px] font-black text-dark-muted uppercase tracking-[0.3em]">{stat.label}</p>
-            </div>
+            <div className="text-3xl font-bold text-white">{loading ? '...' : stat.value}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-16">
-        {/* Ultimi Video Section */}
-        <div className="space-y-8">
+      <div className="grid lg:grid-cols-2 gap-8">
+        {/* Recent Videos */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-white uppercase tracking-[0.5em]">Ultimi Video</h2>
-            <Link to="/dashboard/videos" className="text-[11px] font-black text-gold-primary uppercase tracking-[0.3em] hover:opacity-80 transition-all">Vedi Tutti</Link>
+            <h2 className="text-sm font-bold text-white">Ultimi Video Caricati</h2>
+            <Link to="/dashboard/videos" className="text-xs text-gold-primary hover:underline">Vedi tutti</Link>
           </div>
-          
-          <div className="space-y-4">
-            {recentVideos.length > 0 ? recentVideos.map(video => (
-              <Link key={video.id} to={`/dashboard/videos/${video.id}`} className="business-card p-8 rounded-2xl flex items-center justify-between group hover:border-gold-primary/30 transition-all shadow-lg">
-                <div className="flex items-center gap-8">
-                  <div className="w-20 h-14 bg-dark-lighter border border-dark-border rounded-xl overflow-hidden flex items-center justify-center relative">
-                    {video.thumbnail_url ? (
-                      <img src={video.thumbnail_url} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all" />
-                    ) : (
-                      <div className="text-[10px] font-black text-gold-primary/20 italic tracking-widest">AIXUM</div>
-                    )}
-                    <Play size={16} className="absolute text-white/40 group-hover:text-gold-primary transition-colors" />
+          <div className="space-y-3">
+            {recentVideos.map(video => (
+              <Link key={video.id} to={`/dashboard/videos/${video.id}`} className="sb-card p-4 flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-black rounded border border-dark-border flex items-center justify-center text-gold-primary group-hover:border-gold-primary/50 transition-all">
+                    <Play size={16} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white group-hover:text-gold-primary transition-colors">{video.title}</h3>
-                    <p className="text-[11px] text-dark-muted font-black uppercase tracking-[0.3em] mt-1.5">{video.category}</p>
+                    <h3 className="text-sm font-semibold text-white">{video.title}</h3>
+                    <p className="text-[11px] text-dark-muted">{video.category}</p>
                   </div>
                 </div>
-                <ChevronRight size={18} className="text-dark-muted group-hover:text-gold-primary group-hover:translate-x-1 transition-all" />
+                <ChevronRight size={14} className="text-dark-muted" />
               </Link>
-            )) : (
-              <div className="p-12 text-center bg-dark-card border border-dashed border-dark-border rounded-3xl text-xs font-black uppercase tracking-widest text-dark-muted">Nessun video caricato</div>
-            )}
+            ))}
           </div>
-        </div>
+        </section>
 
-        {/* Documenti Recenti Section */}
-        <div className="space-y-8">
+        {/* Recent Documents */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black text-white uppercase tracking-[0.5em]">Documenti Recenti</h2>
-            <Link to="/dashboard/documents" className="text-[11px] font-black text-gold-primary uppercase tracking-[0.3em] hover:opacity-80 transition-all">Vai all'Archivio</Link>
+            <h2 className="text-sm font-bold text-white">Documenti Recenti</h2>
+            <Link to="/dashboard/documents" className="text-xs text-gold-primary hover:underline">Vai all'archivio</Link>
           </div>
-          
-          <div className="space-y-4">
-            {recentDocs.length > 0 ? recentDocs.map(doc => (
-              <div key={doc.id} className="business-card p-8 rounded-2xl flex items-center justify-between group hover:border-gold-primary/30 transition-all shadow-lg">
-                <div className="flex items-center gap-8">
-                  <div className="w-12 h-12 bg-dark-lighter border border-dark-border rounded-xl flex items-center justify-center text-gold-primary shadow-inner">
-                    <FileText size={20} />
+          <div className="space-y-3">
+            {recentDocs.map(doc => (
+              <div key={doc.id} className="sb-card p-4 flex items-center justify-between group">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-black rounded border border-dark-border flex items-center justify-center text-dark-muted group-hover:text-gold-primary transition-all">
+                    <FileText size={16} />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white group-hover:text-gold-primary transition-colors">{doc.title}</h3>
-                    <p className="text-[11px] text-dark-muted font-black uppercase tracking-[0.2em] mt-1.5">
-                      {(doc.file_size_bytes / 1024 / 1024).toFixed(1)}MB • {doc.category}
-                    </p>
+                    <h3 className="text-sm font-semibold text-white">{doc.title}</h3>
+                    <p className="text-[11px] text-dark-muted uppercase tracking-tighter">{doc.file_type} • {(doc.file_size_bytes/1024/1024).toFixed(1)}MB</p>
                   </div>
                 </div>
-                <button onClick={() => downloadFile(doc.file_url, doc.file_name)} className="text-dark-muted hover:text-gold-primary transition-colors">
-                  <Download size={20} />
+                <button onClick={() => downloadFile(doc.file_url, doc.file_name)} className="p-2 text-dark-muted hover:text-white transition-colors">
+                  <Download size={16} />
                 </button>
               </div>
-            )) : (
-              <div className="p-12 text-center bg-dark-card border border-dashed border-dark-border rounded-3xl text-xs font-black uppercase tracking-widest text-dark-muted">Nessun documento disponibile</div>
-            )}
+            ))}
           </div>
-        </div>
+        </section>
       </div>
 
-      {/* Footer Sync Status Bar */}
-      <footer className="pt-16">
-        <div className="flex items-center justify-between p-8 rounded-2xl bg-dark-card border border-dark-border border-dashed">
-          <div className="flex items-center gap-4">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.4)]"></div>
-            <p className="text-xs font-bold text-dark-muted tracking-tight">
-              Sincronizzazione completata. Ultimo aggiornamento: <span className="text-gray-400">{currentTime}</span>
-            </p>
-          </div>
-          <button onClick={fetchData} className="flex items-center gap-3 text-[11px] font-black text-dark-muted hover:text-white uppercase tracking-[0.4em] transition-colors group">
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-700" />} 
-            REFRESH NOW
-          </button>
+      <footer className="pt-10 border-t border-dark-border">
+        <div className="flex items-center gap-2 text-[11px] text-dark-muted">
+          <Clock size={12} />
+          Portal Status: <span className="text-emerald-500 font-bold">Synchronized</span> • Version 2.1.0
         </div>
       </footer>
-
-      <DocumentViewerModal 
-        document={selectedDoc} 
-        onClose={() => setSelectedDoc(null)} 
-        onDownload={(doc) => downloadFile(doc.file_url, doc.file_name)} 
-      />
     </div>
   );
 };

@@ -11,7 +11,8 @@ import {
   X,
   ShieldCheck,
   ChevronRight,
-  Monitor
+  Monitor,
+  Award
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -83,6 +84,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
               <NavItem to="/dashboard" icon={LayoutDashboard} label="Overview" />
               <NavItem to="/dashboard/videos" icon={Video} label="Libreria Video" />
               <NavItem to="/dashboard/documents" icon={FileText} label="Documenti" />
+              <NavItem to="/dashboard/certificates" icon={Award} label="Certificati" />
             </nav>
 
             {role === 'admin' && (
@@ -91,6 +93,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
                 <NavItem to="/admin" icon={ShieldCheck} label="Admin Hub" />
                 <NavItem to="/admin/videos" icon={Video} label="Gestione Video" />
                 <NavItem to="/admin/documents" icon={FileText} label="Gestione Docs" />
+                <NavItem to="/admin/certificates" icon={Award} label="Gestione Certificati" />
                 <NavItem to="/admin/clients" icon={Users} label="Clienti" />
               </nav>
             )}

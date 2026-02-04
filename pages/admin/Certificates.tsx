@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Award, Plus, Search, Trash2, Eye, Loader2, Edit3, User, ExternalLink, Filter } from 'lucide-react';
+import { Award, Plus, Search, Trash2, Eye, Loader2, Edit3, User, Download } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Certificate } from '../../types';
 import UploadModal from '../../components/UploadModal';
@@ -51,8 +51,8 @@ const AdminCertificates: React.FC = () => {
     <div className="space-y-8 animate-in fade-in duration-300">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-white">Certificazioni</h1>
-          <p className="text-dark-muted text-sm mt-1">Gestione e rilascio attestati formativi per i clienti enterprise.</p>
+          <h1 className="text-3xl font-display font-bold text-white">Gestione <span className="gold-text-gradient">Certificazioni</span></h1>
+          <p className="text-dark-muted text-sm mt-1">Emissione e monitoraggio attestati formativi enterprise</p>
         </div>
         
         <button 
@@ -63,7 +63,7 @@ const AdminCertificates: React.FC = () => {
         </button>
       </header>
 
-      <div className="flex items-center gap-4 bg-[#0a0a0a] border border-dark-border p-3 rounded-lg">
+      <div className="flex items-center gap-4 bg-dark-card border border-dark-border p-3 rounded-lg">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-muted" size={16} />
           <input 
@@ -118,6 +118,13 @@ const AdminCertificates: React.FC = () => {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-3">
+                    <button 
+                      onClick={() => downloadFile(cert.file_url, cert.file_name)}
+                      className="text-dark-muted hover:text-white transition-colors"
+                      title="Scarica PDF"
+                    >
+                      <Download size={18} />
+                    </button>
                     <button 
                       onClick={() => setSelectedCert(cert)}
                       className="text-dark-muted hover:text-white transition-colors"

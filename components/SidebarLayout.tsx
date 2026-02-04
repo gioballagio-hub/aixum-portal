@@ -10,9 +10,7 @@ import {
   Menu, 
   X,
   ShieldCheck,
-  Award,
-  ChevronRight,
-  Settings
+  Award
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -49,9 +47,9 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-black flex flex-col md:flex-row">
+    <div className="h-screen bg-black flex flex-col md:flex-row overflow-hidden">
       {/* Mobile Top Nav */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-dark-lighter border-b border-dark-border sticky top-0 z-[100]">
+      <div className="md:hidden flex items-center justify-between p-4 bg-dark-lighter border-b border-dark-border shrink-0">
         <Logo size="sm" withGlow={false} />
         <button onClick={() => setIsOpen(!isOpen)} className="text-white p-2">
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -65,7 +63,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
 
       {/* Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] border-r border-dark-border transition-transform duration-200 ease-in-out md:relative md:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-64 bg-[#111111] border-r border-dark-border transition-transform duration-200 ease-in-out md:relative md:translate-x-0 shrink-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="h-full flex flex-col">
@@ -73,7 +71,7 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
             <Logo size="md" withGlow={false} />
           </div>
 
-          <nav className="flex-1 px-3 space-y-1">
+          <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
             <div className="mb-4">
               <p className="px-3 text-[10px] font-bold text-dark-muted uppercase tracking-widest mb-2">Workspace</p>
               {menuItems.map((item) => (
@@ -117,31 +115,31 @@ const SidebarLayout: React.FC<SidebarLayoutProps> = ({ role, profile }) => {
             )}
           </nav>
 
-          <div className="p-4 border-t border-dark-border bg-[#0a0a0a]">
+          <div className="p-4 border-t border-dark-border bg-[#0a0a0a] shrink-0">
             <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-8 h-8 rounded bg-dark-border flex items-center justify-center text-xs font-bold text-gold-primary">
+              <div className="w-8 h-8 rounded bg-dark-border flex items-center justify-center text-xs font-bold text-gold-primary border border-white/5">
                 {profile?.full_name?.[0] || 'U'}
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white truncate">{profile?.full_name}</p>
-                <p className="text-[10px] text-dark-muted truncate">{profile?.role === 'admin' ? 'Amministratore' : 'Cliente Premium'}</p>
+                <p className="text-[10px] text-dark-muted truncate uppercase tracking-tighter">{profile?.role}</p>
               </div>
             </div>
             
             <button 
               onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#999] hover:text-red-400 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#999] hover:text-red-400 transition-colors uppercase font-bold tracking-widest"
             >
               <LogOut size={14} />
-              Scollegati
+              Esci
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-black">
-        <div className="max-w-[1200px] mx-auto p-6 md:p-10 lg:p-12">
+      <main className="flex-1 min-w-0 bg-black overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden p-6 md:p-8 lg:p-10">
           <Outlet />
         </div>
       </main>

@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Video as VideoIcon, Plus, Search, Trash2, Eye, EyeOff, MoreVertical } from 'lucide-react';
+import { Video as VideoIcon, Plus, Search, Trash2, Eye, EyeOff, MoreVertical, Filter } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Video } from '../../types';
 import UploadModal from '../../components/UploadModal';
@@ -17,135 +17,110 @@ const AdminVideos: React.FC = () => {
 
   const fetchVideos = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
+    const { data } = await supabase.from('videos').select('*').order('created_at', { ascending: false });
     if (data) setVideos(data);
     setLoading(false);
   };
 
   const togglePublished = async (id: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('videos')
-      .update({ is_published: !currentStatus })
-      .eq('id', id);
-    
+    const { error } = await supabase.from('videos').update({ is_published: !currentStatus }).eq('id', id);
     if (!error) fetchVideos();
   };
 
   const deleteVideo = async (id: string) => {
-    if (!confirm('Sei sicuro di voler eliminare questo video?')) return;
+    if (!confirm('Eliminare definitivamente questo video?')) return;
     const { error } = await supabase.from('videos').delete().eq('id', id);
     if (!error) fetchVideos();
   };
 
-  const filteredVideos = videos.filter(v => 
-    v.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredVideos = videos.filter(v => v.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
-    <div className="space-y-10">
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-2">
-          <p className="text-gold-primary font-bold uppercase tracking-[0.3em] text-[10px]">Content Management</p>
-          <h1 className="text-4xl md:text-5xl font-display font-bold">Gestione <span className="gold-text-gradient italic">Video</span></h1>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-4">
+        <div>
+          <h1 className="text-xl font-bold text-white">Libreria Multimediale</h1>
+          <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Gestione contenuti video per i clienti</p>
         </div>
         
-        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+        <div className="flex gap-2 w-full md:w-auto">
+          <div className="relative flex-1 md:flex-none">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
             <input 
               type="text"
-              placeholder="Cerca video..."
+              placeholder="Cerca per titolo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
+              className="w-full md:w-64 pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all"
             />
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-8 py-4 gold-gradient text-black rounded-xl font-bold gold-glow transition-all hover:scale-105 flex items-center justify-center gap-2"
+            className="px-4 py-2 gold-gradient text-black rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-gold-primary/5"
           >
-            <Plus size={18} /> Carica Video
+            <Plus size={14} /> Nuovo Contenuto
           </button>
         </div>
       </header>
 
-      <div className="glass-card gold-border rounded-[32px] overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-8 py-6 text-xs font-bold uppercase tracking-widest text-gray-500">Video</th>
-                <th className="px-8 py-6 text-xs font-bold uppercase tracking-widest text-gray-500">Categoria</th>
-                <th className="px-8 py-6 text-xs font-bold uppercase tracking-widest text-gray-500">Stato</th>
-                <th className="px-8 py-6 text-xs font-bold uppercase tracking-widest text-gray-500">Data</th>
-                <th className="px-8 py-6 text-xs font-bold uppercase tracking-widest text-gray-500 text-right">Azioni</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-gray-500 italic">Caricamento...</td>
-                </tr>
-              ) : filteredVideos.map((video) => (
-                <tr key={video.id} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-10 rounded-lg bg-dark-lighter overflow-hidden border border-white/5 shrink-0">
-                        {video.thumbnail_url ? (
-                          <img src={video.thumbnail_url} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center"><VideoIcon size={16} className="text-gray-700" /></div>
-                        )}
-                      </div>
-                      <span className="font-bold text-white truncate max-w-[200px]">{video.title}</span>
+      <div className="border border-white/5 rounded-xl overflow-hidden bg-white/[0.01]">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-white/[0.02] border-b border-white/5">
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">Preview & Titolo</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 hidden md:table-cell">Categoria</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-center">Stato</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right">Azioni</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-white/5">
+            {loading ? (
+              <tr><td colSpan={4} className="px-4 py-12 text-center text-xs text-gray-600 animate-pulse">Sincronizzazione archivio...</td></tr>
+            ) : filteredVideos.map((video) => (
+              <tr key={video.id} className="hover:bg-white/[0.02] transition-colors group">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-16 aspect-video rounded-md bg-dark-lighter overflow-hidden border border-white/5 shrink-0 relative">
+                      {video.thumbnail_url ? <img src={video.thumbnail_url} className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center"><VideoIcon size={12} className="text-gray-800" /></div>}
                     </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                      {video.category}
+                    <span className="text-xs font-bold text-gray-200 truncate group-hover:text-gold-primary transition-colors">{video.title}</span>
+                  </div>
+                </td>
+                <td className="px-4 py-3 hidden md:table-cell">
+                  <span className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[9px] font-bold uppercase text-gray-500 tracking-tight">
+                    {video.category}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`w-1.5 h-1.5 rounded-full ${video.is_published ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-gray-600'}`} />
+                    <span className={`text-[9px] font-black uppercase tracking-widest ${video.is_published ? 'text-emerald-500/80' : 'text-gray-600'}`}>
+                      {video.is_published ? 'Live' : 'Draft'}
                     </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    {video.is_published ? (
-                      <span className="flex items-center gap-2 text-emerald-500 text-xs font-bold uppercase">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Pubblicato
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2 text-gray-500 text-xs font-bold uppercase">
-                        <div className="w-2 h-2 rounded-full bg-gray-500" /> Bozza
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-8 py-6 text-sm text-gray-500">
-                    {new Date(video.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center justify-end gap-3">
-                      <button 
-                        onClick={() => togglePublished(video.id, video.is_published)}
-                        className="p-3 rounded-xl glass-card border border-white/10 hover:border-gold-primary transition-all text-gray-400 hover:text-gold-primary"
-                        title={video.is_published ? "Nascondi" : "Pubblica"}
-                      >
-                        {video.is_published ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                      <button 
-                        onClick={() => deleteVideo(video.id)}
-                        className="p-3 rounded-xl glass-card border border-white/10 hover:border-red-500 transition-all text-gray-400 hover:text-red-500"
-                        title="Elimina"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <button 
+                      onClick={() => togglePublished(video.id, video.is_published)}
+                      className="p-1.5 rounded hover:bg-white/5 text-gray-600 hover:text-gold-primary transition-all"
+                      title={video.is_published ? "Metti in Bozza" : "Pubblica"}
+                    >
+                      {video.is_published ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                    <button 
+                      onClick={() => deleteVideo(video.id)}
+                      className="p-1.5 rounded hover:bg-red-500/10 text-gray-600 hover:text-red-400 transition-all"
+                      title="Elimina"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <UploadModal 

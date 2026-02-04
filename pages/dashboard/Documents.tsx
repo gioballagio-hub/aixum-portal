@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Search, HardDrive, Loader2, Eye, Filter } from 'lucide-react';
+import { FileText, Download, Search, HardDrive, Loader2, Eye, Filter, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Document } from '../../types';
 import DocumentViewerModal from '../../components/DocumentViewerModal';
+import { downloadFile } from '../../lib/utils';
 
 const DocumentList: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -11,15 +12,23 @@ const DocumentList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
-    const fetchDocs = async () => {
-      const { data } = await supabase.from('documents').select('*').eq('is_published', true).order('created_at', { ascending: false });
-      if (data) setDocuments(data);
-      setLoading(false);
-    };
     fetchDocs();
   }, []);
+
+  const fetchDocs = async () => {
+    setLoading(true);
+    const { data } = await supabase.from('documents').select('*').eq('is_published', true).order('created_at', { ascending: false });
+    if (data) setDocuments(data);
+    setLoading(false);
+  };
 
   const filteredDocs = documents.filter(d => 
     d.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -33,11 +42,13 @@ const DocumentList: React.FC = () => {
       if (session) {
         await supabase.from('document_downloads').insert([{ document_id: doc.id, user_id: session.user.id }]);
       }
-      window.open(doc.file_url, '_blank');
+      
+      const success = await downloadFile(doc.file_url, doc.file_name || doc.title);
+      if (success) showToast(`Download avviato: ${doc.title}`);
     } catch (err) {
       console.error(err);
     } finally {
-      setTimeout(() => setDownloadingId(null), 1000);
+      setDownloadingId(null);
     }
   };
 
@@ -60,13 +71,17 @@ const DocumentList: React.FC = () => {
               className="pl-9 pr-4 py-2 text-xs rounded-lg bg-white/5 border border-white/10 text-white focus:border-gold-primary outline-none transition-all w-48 md:w-64"
             />
           </div>
-          <button className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-gold-primary transition-all">
-            <Filter size={16} />
+          <button 
+            onClick={fetchDocs}
+            className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-gold-primary transition-all"
+            title="Aggiorna lista"
+          >
+            <Loader2 size={16} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </header>
 
-      {loading ? (
+      {loading && documents.length === 0 ? (
         <div className="space-y-2">
           {[1,2,3,4,5,6].map(i => <div key={i} className="h-14 w-full glass-card animate-pulse rounded-lg"></div>)}
         </div>
@@ -82,7 +97,7 @@ const DocumentList: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {filteredDocs.map((doc, idx) => (
+              {filteredDocs.map((doc) => (
                 <tr key={doc.id} className="hover:bg-white/[0.03] transition-colors group">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -131,6 +146,13 @@ const DocumentList: React.FC = () => {
               <p className="text-xs text-gray-600 font-medium">Nessun file trovato per questa ricerca</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[200] animate-in slide-in-from-right-10 flex items-center gap-3 px-4 py-3 bg-emerald-500 text-black font-bold text-xs rounded-xl shadow-2xl">
+          <CheckCircle2 size={16} /> {toast}
         </div>
       )}
 

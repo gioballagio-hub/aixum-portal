@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
-import { Video, FileText, ChevronRight, Play, Download, Loader2, ArrowUpRight } from 'lucide-react';
+import { Video, FileText, ChevronRight, Play, Download, Loader2, ArrowUpRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Profile, Video as IVideo, Document as IDocument } from '../../types';
+import { downloadFile } from '../../lib/utils';
 
 interface OverviewProps {
   profile: Profile | null;
@@ -14,31 +15,44 @@ const ClientDashboard: React.FC<OverviewProps> = ({ profile }) => {
   const [recentDocs, setRecentDocs] = useState<IDocument[]>([]);
   const [counts, setCounts] = useState({ videos: 0, docs: 0 });
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [vids, docs, vCount, dCount] = await Promise.all([
+        supabase.from('videos').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
+        supabase.from('documents').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
+        supabase.from('videos').select('id', { count: 'exact', head: true }).eq('is_published', true),
+        supabase.from('documents').select('id', { count: 'exact', head: true }).eq('is_published', true)
+      ]);
+      
+      if (vids.data) setRecentVideos(vids.data);
+      if (docs.data) setRecentDocs(docs.data);
+      setCounts({
+        videos: vCount.count || 0,
+        docs: dCount.count || 0
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [vids, docs, vCount, dCount] = await Promise.all([
-          supabase.from('videos').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
-          supabase.from('documents').select('*').eq('is_published', true).order('created_at', { ascending: false }).limit(4),
-          supabase.from('videos').select('id', { count: 'exact', head: true }).eq('is_published', true),
-          supabase.from('documents').select('id', { count: 'exact', head: true }).eq('is_published', true)
-        ]);
-        
-        if (vids.data) setRecentVideos(vids.data);
-        if (docs.data) setRecentDocs(docs.data);
-        setCounts({
-          videos: vCount.count || 0,
-          docs: dCount.count || 0
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
+
+  const handleDownload = async (doc: IDocument) => {
+    const success = await downloadFile(doc.file_url, doc.file_name || doc.title);
+    if (success) showToast(`Download avviato: ${doc.title}`);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -123,7 +137,7 @@ const ClientDashboard: React.FC<OverviewProps> = ({ profile }) => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => window.open(doc.file_url, '_blank')}
+                  onClick={(e) => { e.preventDefault(); handleDownload(doc); }}
                   className="p-2 rounded hover:bg-white/5 text-gray-600 hover:text-gold-primary transition-all"
                 >
                   <Download size={14} />
@@ -136,11 +150,22 @@ const ClientDashboard: React.FC<OverviewProps> = ({ profile }) => {
 
       <div className="p-4 rounded-xl border border-dashed border-white/10 flex items-center justify-between">
          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <p className="text-[11px] text-gray-500 font-medium">Sincronizzazione completata. Ultimo aggiornamento: oggi alle 09:12</p>
+            <div className={`w-2 h-2 rounded-full bg-emerald-500 ${loading ? 'animate-ping' : ''}`}></div>
+            <p className="text-[11px] text-gray-500 font-medium">Sincronizzazione completata. Ultimo aggiornamento: {new Date().toLocaleTimeString('it-IT')}</p>
          </div>
-         <button className="text-[10px] font-bold text-gray-400 hover:text-white uppercase tracking-widest">Refresh Now</button>
+         <button 
+           onClick={fetchData}
+           className="text-[10px] font-bold text-gray-400 hover:text-white uppercase tracking-widest flex items-center gap-2"
+         >
+           {loading && <Loader2 size={10} className="animate-spin" />} Refresh Now
+         </button>
       </div>
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[200] animate-in slide-in-from-right-10 flex items-center gap-3 px-4 py-3 bg-emerald-500 text-black font-bold text-xs rounded-xl shadow-2xl">
+          <CheckCircle2 size={16} /> {toast}
+        </div>
+      )}
     </div>
   );
 };
